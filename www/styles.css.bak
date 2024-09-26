@@ -1,0 +1,36 @@
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+let towers = [{x: 100, y: 100}];
+let enemies = [{x: 0, y: 200}];
+
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw towers (blue squares)
+    towers.forEach(tower => {
+        ctx.fillStyle = 'blue';
+        ctx.fillRect(tower.x, tower.y, 40, 40);
+    });
+
+    // Draw enemies (red squares)
+    enemies.forEach(enemy => {
+        ctx.fillStyle = 'red';
+        ctx.fillRect(enemy.x, enemy.y, 30, 30);
+    });
+}
+
+function update() {
+    // Move enemies to the right
+    enemies.forEach(enemy => {
+        enemy.x += 1;
+    });
+}
+
+function gameLoop() {
+    update();
+    draw();
+    requestAnimationFrame(gameLoop);
+}
+
+gameLoop();

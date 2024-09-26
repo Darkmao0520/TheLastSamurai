@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center; /* Center horizontally */
+            align-items: center;    /* Center vertically */
+            height: 100vh;         /* Full viewport height */
+            margin: 0;             /* Remove default margin */
+            background-color: #f0f0f0; /* Optional: background color */
+        }
+        #gameCanvas {
+            border: 1px solid black;
+            display: none; /* Hide the canvas initially */
+        }
+        .button-container {
+            text-align: center; /* Center buttons */
+            margin-bottom: 20px; /* Space between buttons and canvas */
+        }
+    </style>
+</head>
+<body>
+    <div class="button-container">
+        <button id="startGameButton">Start Game</button>
+    </div>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+    <!-- Link to the external JavaScript file -->
+    <script src="game.js"></script> <!-- Adjust path as needed -->
+</body>
+</html>
