@@ -23,7 +23,7 @@ potionImg.src = "img/potion/tile_0044.png"; // Replace with your actual sprite p
 
 // Define mouse default position
 let mouseX = 0;
-let mouseY = 0;
+mouseY = 0;
 
 // Define towers and enemies with an attack range
 let towers = [{ x: 100, y: 100, attackRange: 100, health: 5, hasSword: false }];
@@ -31,8 +31,7 @@ let enemies = [];
 let potions = []; // Array to store potions dropped by enemies
 let spawnInterval;
 let gameOver = false;
-
-const sword = { length: 50, width: 10, angle: 0 }; // Sword properties
+let score = 0;
 
 let attackTimer = 0; // Timer to track time for attacks
 const attackDelay = 500; // 0.5 seconds in milliseconds
@@ -42,10 +41,10 @@ let difficultyLevel = 1; // Start at difficulty level 1
 const difficultyIncreaseInterval = 30000; // Increase difficulty every 30 seconds
 const maxProjectiles = 5; // Maximum projectiles that can be fired by enemies
 
-towerImg.onload = () => console.log("Tower sprite loaded!");
-enemyImg.onload = () => console.log("Enemy sprite loaded!");
-projectileImg.onload = () => console.log("Projectile sprite loaded!");
-potionImg.onload = () => console.log("Potion sprite loaded!");
+//towerImg.onload = () => console.log("Tower sprite loaded!");
+//enemyImg.onload = () => console.log("Enemy sprite loaded!");
+//projectileImg.onload = () => console.log("Projectile sprite loaded!");
+//potionImg.onload = () => console.log("Potion sprite loaded!");
 
 // Projectile class for shooting enemy projectiles
 class Projectile {
@@ -100,6 +99,7 @@ function resetGameState() {
     enemies = []; // Clear enemies
     projectiles = []; // Clear projectiles
     potions = []; // Clear potions
+    score = 0; // Reset score
     gameOver = false; // Reset game over state
     attackTimer = 0; // Reset attack timer
 
@@ -130,7 +130,6 @@ function draw() {
 
     // Draw towers (blue squares) and their attack range (light blue circle)
     towers.forEach((tower) => {
-        
         // Draw tower
         ctx.drawImage(towerImg, towers[0].x, towers[0].y, 40, 40);
 
@@ -138,37 +137,26 @@ function draw() {
         ctx.drawImage(handImg, towers[0].x + 30, towers[0].y + 15, 20, 20);
 
         // If the tower has a sword, draw the sword in the hand
-        if (towers.hasSword) {
-            //let swordOffset = attackTimer > 0 ? 10 : 0; // Move sword forward when attacking
-            // ctx.drawImage(swordImg, towers[0].x + 35 + swordOffset, towers[0].y + 10, 30, 30);
-            
-            // Draw Sword
-            ctx.save(); // Save current transformation state
-            ctx.translate(mouseX, mouseY); // Move to mouse position
-            ctx.rotate(sword.angle); // Rotate sword to face mouse
-
+        if (tower.hasSword) {
+            let swordOffset = attackTimer > 0 ? 10 : 0; // Move sword forward when attacking
             ctx.drawImage(swordImg, towers[0].x + 35 + swordOffset, towers[0].y + 10, 30, 30);
-
-            ctx.restore(); // Restore previous state
-
-            requestAnimationFrame(draw);
         }
 
         // Draw tower health
         ctx.fillStyle = "black";
         ctx.font = "16px Arial";
-        ctx.fillText(`HP: ${towers.health}`, tower.x, tower.y - 5);
+        ctx.fillText(`HP: ${tower.health}`, tower.x, tower.y - 5);
 
         // Draw attack range
         ctx.beginPath();
-        ctx.arc(towers.x + 20, towers.y + 20, tower.attackRange, 0, Math.PI * 2, false);
+        ctx.arc(tower.x + 20, tower.y + 20, tower.attackRange, 0, Math.PI * 2, false);
         ctx.strokeStyle = "lightblue";
         ctx.stroke();
     });
 
-    // Draw enemies
+    // Draw enemies with their respective color sprites
     enemies.forEach((enemy) => {
-        ctx.drawImage(enemyImg, enemy.x, enemy.y, 30, 30);
+        ctx.drawImage(enemy.sprite, enemy.x, enemy.y, 30, 30);
 
         // Draw enemy health
         ctx.fillStyle = "black";
@@ -188,17 +176,25 @@ function draw() {
         ctx.fillText(potion.value, potion.x + 2, potion.y + 8); // Display potion value
     });
 
+    // Draw Score
+    ctx.fillStyle = "black";
+    ctx.font = "20px Arial";
+    ctx.fillText(`Score: ${score}`, 30, 40); // Display the score at the top-left corner
+    
     // Draw game over screen if the game is over
     if (gameOver) {
         ctx.fillStyle = "rgba(0, 0, 0, 0.7)"; // Semi-transparent background
         ctx.fillRect(0, 0, canvas.width, canvas.height); // Cover the canvas
-
         ctx.fillStyle = "white"; // Text color
         ctx.font = "48px Arial";
         ctx.textAlign = "center";
         ctx.fillText("Game Over", canvas.width / 2, canvas.height / 2 - 20);
+        ctx.font = "32px Arial";
+        ctx.fillText(`Your Score: ${score}`, canvas.width / 2, canvas.height / 2 + 30);
         ctx.font = "24px Arial";
-        ctx.fillText("Click to Restart", canvas.width / 2, canvas.height / 2 + 20);
+        ctx.fillText("Click to Restart", canvas.width / 2, canvas.height / 2 + 80);
+        
+       
     }
 }
 
@@ -214,8 +210,8 @@ function update() {
 
         // Normalize the direction vector and move the enemy towards the tower
         if (distance > 0) {
-            enemy.x += (dx / distance) * 2; // Move towards the tower at a speed of 2 pixels
-            enemy.y += (dy / distance) * 2; // Move towards the tower at a speed of 2 pixels
+            enemy.x += (dx / distance) * 1; // Move towards the tower at a speed of 2 pixels
+            enemy.y += (dy / distance) * 1; // Move towards the tower at a speed of 2 pixels
         }
 
         // Check if the enemy touches the tower
@@ -275,8 +271,17 @@ function update() {
         }
     }
 
-    // Remove dead enemies
-    enemies = enemies.filter((enemy) => enemy.health > 0);
+    // Remove dead enemies and update score
+    enemies = enemies.filter((enemy) => {
+        if (enemy.health <= 0) {
+            score += 10; // Add 10 points for each killed enemy
+            console.log(`Enemy killed! Score: ${score}`);
+            
+            return false; // Remove this enemy
+        }
+        return true; // Keep this enemy
+    });    
+    
 }
 
 // Function to drop a potion
@@ -311,19 +316,33 @@ function attackNearestEnemy() {
 
         // Check if the enemy is dead and drop a potion
         if (nearestEnemy.health <= 0) {
+            score += 1; // Add 1 point for each killed enemy
+            console.log(`Enemy killed! Score: ${score}`);
             dropPotion(nearestEnemy); // Drop a potion when the enemy dies
         }
     }
 }
 
+// Define enemy sprites based on color
+const enemySprites = {
+    green: "img/enemy/green_character.png",
+    purple: "img/enemy/purple_character.png",
+    yellow: "img/enemy/yellow_character.png",
+};
+
 // Function to spawn a new enemy
 function spawnEnemy() {
-    const colors = ["red", "green", "blue", "yellow"];
+    if (gameOver) return;
+
+    const colors = Object.keys(enemySprites); // Get color names from the enemySprites object
     const isShootingEnemy = Math.random() < 0.2; // 20% chance to spawn a shooting enemy
     const numberOfEnemies = getRandomInterval(1, 5); // Random number of enemies to spawn (between 1 and 5)
 
     for (let i = 0; i < numberOfEnemies; i++) {
         const randomColor = colors[Math.floor(Math.random() * colors.length)];
+        
+        const enemyImg = new Image();
+        enemyImg.src = enemySprites[randomColor]; // Assign correct sprite based on color
 
         // Create a new enemy at a random position on the screen
         const newEnemy = {
@@ -331,18 +350,18 @@ function spawnEnemy() {
             y: Math.random() * (canvas.height - 30),
             color: randomColor,
             health: 3,
-            shooting: isShootingEnemy
+            shooting: isShootingEnemy,
+            sprite: enemyImg, // Assign the sprite to the enemy object
         };
 
         enemies.push(newEnemy);
         console.log(`Spawned a new ${randomColor} enemy!`);
 
         if (isShootingEnemy) {
-            // Start the shooting interval for the shooting enemy
-            shootingEnemy = newEnemy; // Reference to the shooting enemy
+            shootingEnemy = newEnemy;
             shootingInterval = setInterval(() => {
                 shootProjectile(shootingEnemy);
-            }, 1000); // Shooting interval of 1 second
+            }, 1000);
         }
     }
 }
@@ -416,11 +435,7 @@ canvas.addEventListener("mousemove", (event) => {
     checkPotionHover(mouseX, mouseY); // Check if hovering over potions
     checkProjectileHover(mouseX, mouseY); // Check if hovering over projectiles to reverse their direction
     
-    // Calculate Angle from Tower to Mouse
-    sword.angle = Math.atan2(mouseY - (tower.y + tower.height / 2), 
-                             mouseX - (tower.x + tower.width / 2));
-    
-    console.log(`Mouse inside canvas: (${mouseX}, ${mouseY})`);
+    //console.log(`Mouse inside canvas: (${mouseX}, ${mouseY})`);
 });
 
 // Function to check if mouse is hovering over projectiles
