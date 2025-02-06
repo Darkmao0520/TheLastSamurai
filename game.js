@@ -1,13 +1,38 @@
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-const startGameButton = document.getElementById('startGameButton');
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+const startGameButton = document.getElementById("startGameButton");
+
+// Define sprites
+const towerImg = new Image();
+towerImg.src = "img/tower/red_character.png"; // Replace with your actual sprite path
+
+const handImg = new Image();
+handImg.src = "img/tower/red_hand.png"; // Replace with actual hand sprite
+
+const swordImg = new Image();
+swordImg.src = "img/equips/weapon_dagger.png"; // Replace with actual sword sprite
+
+const enemyImg = new Image();
+enemyImg.src = "img/enemy/yellow_character.png"; // Replace with your actual sprite path
+
+const projectileImg = new Image();
+projectileImg.src = "img/projectile/tile_0008.png"; // Replace with your actual sprite path
+
+const potionImg = new Image();
+potionImg.src = "img/potion/tile_0044.png"; // Replace with your actual sprite path
+
+// Define mouse default position
+let mouseX = 0;
+let mouseY = 0;
 
 // Define towers and enemies with an attack range
-let towers = [{ x: 100, y: 100, attackRange: 100, health: 5 }];
+let towers = [{ x: 100, y: 100, attackRange: 100, health: 5, hasSword: false }];
 let enemies = [];
 let potions = []; // Array to store potions dropped by enemies
 let spawnInterval;
 let gameOver = false;
+
+const sword = { length: 50, width: 10, angle: 0 }; // Sword properties
 
 let attackTimer = 0; // Timer to track time for attacks
 const attackDelay = 500; // 0.5 seconds in milliseconds
@@ -16,6 +41,11 @@ const attackDelay = 500; // 0.5 seconds in milliseconds
 let difficultyLevel = 1; // Start at difficulty level 1
 const difficultyIncreaseInterval = 30000; // Increase difficulty every 30 seconds
 const maxProjectiles = 5; // Maximum projectiles that can be fired by enemies
+
+towerImg.onload = () => console.log("Tower sprite loaded!");
+enemyImg.onload = () => console.log("Enemy sprite loaded!");
+projectileImg.onload = () => console.log("Projectile sprite loaded!");
+potionImg.onload = () => console.log("Potion sprite loaded!");
 
 // Projectile class for shooting enemy projectiles
 class Projectile {
@@ -44,12 +74,12 @@ let shootingInterval; // Interval for the shooting enemy
 // Function to start the game
 function startGame() {
     // Hide the start button and show the canvas
-    startGameButton.style.display = 'none';
-    canvas.style.display = 'block';
+    startGameButton.style.display = "none";
+    canvas.style.display = "block";
 
     // Center the tower on the screen
-    towers[0].x = (canvas.width / 2) - 20;
-    towers[0].y = (canvas.height / 2) - 20;
+    towers[0].x = canvas.width / 2 - 20;
+    towers[0].y = canvas.height / 2 - 20;
 
     // Reset game state
     resetGameState();
@@ -82,9 +112,12 @@ function resetGameState() {
 
 // Function to start spawning enemies at random intervals
 function startSpawnInterval() {
-    spawnInterval = setInterval(() => {
-        spawnEnemy();
-    }, getRandomInterval(1000, 3000));
+    spawnInterval = setInterval(
+        () => {
+            spawnEnemy();
+        },
+        getRandomInterval(1000, 3000)
+    );
 }
 
 // Function to get a random interval
@@ -94,60 +127,78 @@ function getRandomInterval(min, max) {
 
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
+
     // Draw towers (blue squares) and their attack range (light blue circle)
-    towers.forEach(tower => {
-        ctx.fillStyle = 'blue';
-        ctx.fillRect(tower.x, tower.y, 40, 40);
+    towers.forEach((tower) => {
+        
+        // Draw tower
+        ctx.drawImage(towerImg, towers[0].x, towers[0].y, 40, 40);
+
+        // Draw hand on the right side of the tower
+        ctx.drawImage(handImg, towers[0].x + 30, towers[0].y + 15, 20, 20);
+
+        // If the tower has a sword, draw the sword in the hand
+        if (towers.hasSword) {
+            //let swordOffset = attackTimer > 0 ? 10 : 0; // Move sword forward when attacking
+            // ctx.drawImage(swordImg, towers[0].x + 35 + swordOffset, towers[0].y + 10, 30, 30);
+            
+            // Draw Sword
+            ctx.save(); // Save current transformation state
+            ctx.translate(mouseX, mouseY); // Move to mouse position
+            ctx.rotate(sword.angle); // Rotate sword to face mouse
+
+            ctx.drawImage(swordImg, towers[0].x + 35 + swordOffset, towers[0].y + 10, 30, 30);
+
+            ctx.restore(); // Restore previous state
+
+            requestAnimationFrame(draw);
+        }
 
         // Draw tower health
-        ctx.fillStyle = 'black';
-        ctx.font = '16px Arial';
-        ctx.fillText(`HP: ${tower.health}`, tower.x, tower.y - 5);
+        ctx.fillStyle = "black";
+        ctx.font = "16px Arial";
+        ctx.fillText(`HP: ${towers.health}`, tower.x, tower.y - 5);
 
         // Draw attack range
         ctx.beginPath();
-        ctx.arc(tower.x + 20, tower.y + 20, tower.attackRange, 0, Math.PI * 2, false);
-        ctx.strokeStyle = 'lightblue';
+        ctx.arc(towers.x + 20, towers.y + 20, tower.attackRange, 0, Math.PI * 2, false);
+        ctx.strokeStyle = "lightblue";
         ctx.stroke();
     });
 
     // Draw enemies
-    enemies.forEach(enemy => {
-        ctx.fillStyle = enemy.color;
-        ctx.fillRect(enemy.x, enemy.y, 30, 30);
-        
+    enemies.forEach((enemy) => {
+        ctx.drawImage(enemyImg, enemy.x, enemy.y, 30, 30);
+
         // Draw enemy health
-        ctx.fillStyle = 'black';
-        ctx.font = '16px Arial';
+        ctx.fillStyle = "black";
+        ctx.font = "16px Arial";
         ctx.fillText(`HP: ${enemy.health}`, enemy.x, enemy.y - 5);
     });
 
     // Draw projectiles
-    projectiles.forEach(projectile => {
-        ctx.fillStyle = 'red';
-        ctx.fillRect(projectile.x, projectile.y, 5, 5); // Draw projectiles as small squares
+    projectiles.forEach((projectile) => {
+        ctx.drawImage(projectileImg, projectile.x, projectile.y, 10, 10); // Draw projectiles as small squares
     });
 
     // Draw potions
-    potions.forEach(potion => {
-        ctx.fillStyle = 'purple';
-        ctx.fillRect(potion.x, potion.y, 10, 10); // Draw potions as small squares
-        ctx.fillStyle = 'black';
+    potions.forEach((potion) => {
+        ctx.drawImage(potionImg, potion.x, potion.y, 10, 10); // Draw potions as small squares
+        ctx.fillStyle = "black";
         ctx.fillText(potion.value, potion.x + 2, potion.y + 8); // Display potion value
     });
 
     // Draw game over screen if the game is over
     if (gameOver) {
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)'; // Semi-transparent background
+        ctx.fillStyle = "rgba(0, 0, 0, 0.7)"; // Semi-transparent background
         ctx.fillRect(0, 0, canvas.width, canvas.height); // Cover the canvas
 
-        ctx.fillStyle = 'white'; // Text color
-        ctx.font = '48px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('Game Over', canvas.width / 2, canvas.height / 2 - 20);
-        ctx.font = '24px Arial';
-        ctx.fillText('Click to Restart', canvas.width / 2, canvas.height / 2 + 20);
+        ctx.fillStyle = "white"; // Text color
+        ctx.font = "48px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("Game Over", canvas.width / 2, canvas.height / 2 - 20);
+        ctx.font = "24px Arial";
+        ctx.fillText("Click to Restart", canvas.width / 2, canvas.height / 2 + 20);
     }
 }
 
@@ -155,7 +206,7 @@ function update() {
     if (gameOver) return; // Stop updating if the game is over
 
     // Move enemies towards the tower
-    enemies.forEach(enemy => {
+    enemies.forEach((enemy) => {
         const tower = towers[0]; // Reference to the first tower
         const dx = tower.x + 20 - enemy.x; // Distance to tower in the x direction
         const dy = tower.y + 20 - enemy.y; // Distance to tower in the y direction
@@ -168,7 +219,8 @@ function update() {
         }
 
         // Check if the enemy touches the tower
-        if (distance < 40) { // Assuming the tower is 40x40
+        if (distance < 40) {
+            // Assuming the tower is 40x40
             tower.health -= 1; // Deduct tower health by 1
             console.log(`Tower was hit! New health: ${tower.health}`);
             enemy.health = 0; // Set enemy health to 0 to remove it
@@ -190,7 +242,8 @@ function update() {
         const dy = projectile.y - (tower.y + 20); // Distance to tower in the y direction
         const distance = Math.sqrt(dx * dx + dy * dy);
 
-        if (distance < 20) { // Collision threshold
+        if (distance < 20) {
+            // Collision threshold
             tower.health -= projectile.damage; // Deduct tower health by projectile damage
             console.log(`Tower was hit by a projectile! New health: ${tower.health}`);
             projectiles.splice(index, 1); // Remove projectile after hitting
@@ -199,7 +252,7 @@ function update() {
 
     // Check for attacking enemies
     const tower = towers[0]; // Reference to the tower
-    const inRangeEnemies = enemies.filter(enemy => {
+    const inRangeEnemies = enemies.filter((enemy) => {
         const distance = Math.sqrt((enemy.x - (tower.x + 20)) ** 2 + (enemy.y - (tower.y + 20)) ** 2);
         return distance <= tower.attackRange; // Check if the enemy is within attack range
     });
@@ -223,9 +276,8 @@ function update() {
     }
 
     // Remove dead enemies
-    enemies = enemies.filter(enemy => enemy.health > 0);
+    enemies = enemies.filter((enemy) => enemy.health > 0);
 }
-
 
 // Function to drop a potion
 function dropPotion(enemy) {
@@ -244,15 +296,18 @@ function attackNearestEnemy() {
     const tower = towers[0];
 
     // Find the closest enemy within the attack range
-    const inRangeEnemies = enemies.filter(enemy => {
+    const inRangeEnemies = enemies.filter((enemy) => {
         const distance = Math.sqrt((enemy.x - (tower.x + 20)) ** 2 + (enemy.y - (tower.y + 20)) ** 2);
         return distance <= tower.attackRange;
     });
 
     if (inRangeEnemies.length > 0) {
         const nearestEnemy = inRangeEnemies[0]; // Attack the closest enemy
-        nearestEnemy.health -= 1; // Reduce the health of the nearest enemy by 1
-        console.log(`${nearestEnemy.color} enemy was attacked! New health: ${nearestEnemy.health}`);
+
+        let damage = tower.hasSword ? 3 : 1; // Sword increases damage
+        nearestEnemy.health -= damage;
+
+        console.log(`Attacked with ${tower.hasSword ? "sword" : "hand"}! Damage: ${damage}`);
 
         // Check if the enemy is dead and drop a potion
         if (nearestEnemy.health <= 0) {
@@ -263,13 +318,13 @@ function attackNearestEnemy() {
 
 // Function to spawn a new enemy
 function spawnEnemy() {
-    const colors = ['red', 'green', 'blue', 'yellow'];
+    const colors = ["red", "green", "blue", "yellow"];
     const isShootingEnemy = Math.random() < 0.2; // 20% chance to spawn a shooting enemy
     const numberOfEnemies = getRandomInterval(1, 5); // Random number of enemies to spawn (between 1 and 5)
 
     for (let i = 0; i < numberOfEnemies; i++) {
         const randomColor = colors[Math.floor(Math.random() * colors.length)];
-        
+
         // Create a new enemy at a random position on the screen
         const newEnemy = {
             x: Math.random() * (canvas.width - 30),
@@ -281,7 +336,7 @@ function spawnEnemy() {
 
         enemies.push(newEnemy);
         console.log(`Spawned a new ${randomColor} enemy!`);
-        
+
         if (isShootingEnemy) {
             // Start the shooting interval for the shooting enemy
             shootingEnemy = newEnemy; // Reference to the shooting enemy
@@ -307,7 +362,7 @@ function pushEnemiesAway() {
     const tower = towers[0]; // Reference to the first tower
 
     // Loop through enemies and push them away if they are in range
-    enemies.forEach(enemy => {
+    enemies.forEach((enemy) => {
         const dx = enemy.x - (tower.x + 20); // Direction from tower to enemy in the x direction
         const dy = enemy.y - (tower.y + 20); // Direction from tower to enemy in the y direction
         const distance = Math.sqrt(dx * dx + dy * dy);
@@ -334,8 +389,7 @@ function increaseDifficulty() {
 function checkPotionHover(mouseX, mouseY) {
     potions.forEach((potion, index) => {
         // Check if the mouse is hovering over the potion
-        if (mouseX >= potion.x && mouseX <= potion.x + 10 &&
-            mouseY >= potion.y && mouseY <= potion.y + 10) {
+        if (mouseX >= potion.x && mouseX <= potion.x + 10 && mouseY >= potion.y && mouseY <= potion.y + 10) {
             towers[0].health += potion.value; // Add potion value to tower health
             console.log(`Tower health increased by ${potion.value}. New health: ${towers[0].health}`);
             potions.splice(index, 1); // Remove the potion after it is collected
@@ -344,8 +398,8 @@ function checkPotionHover(mouseX, mouseY) {
 }
 
 // Add event listeners to buttons
-startGameButton.addEventListener('click', startGame); // Start the game on button click
-canvas.addEventListener('click', (event) => {
+startGameButton.addEventListener("click", startGame); // Start the game on button click
+canvas.addEventListener("click", (event) => {
     if (gameOver) {
         location.reload(); // Reload the page to reset the game
     } else {
@@ -354,23 +408,33 @@ canvas.addEventListener('click', (event) => {
 });
 
 // Add event listener for mouse movement
-canvas.addEventListener('mousemove', (event) => {
-    const mouseX = event.clientX - canvas.getBoundingClientRect().left;
-    const mouseY = event.clientY - canvas.getBoundingClientRect().top;
+canvas.addEventListener("mousemove", (event) => {
+    const rect = canvas.getBoundingClientRect();
+    mouseX = event.clientX - rect.left;
+    mouseY = event.clientY - rect.top;
 
     checkPotionHover(mouseX, mouseY); // Check if hovering over potions
-	checkProjectileHover(mouseX, mouseY); // Check if hovering over projectiles to reverse their direction
+    checkProjectileHover(mouseX, mouseY); // Check if hovering over projectiles to reverse their direction
+    
+    // Calculate Angle from Tower to Mouse
+    sword.angle = Math.atan2(mouseY - (tower.y + tower.height / 2), 
+                             mouseX - (tower.x + tower.width / 2));
+    
+    console.log(`Mouse inside canvas: (${mouseX}, ${mouseY})`);
 });
-
 
 // Function to check if mouse is hovering over projectiles
 function checkProjectileHover(mouseX, mouseY) {
-    projectiles.forEach(projectile => {
+    projectiles.forEach((projectile) => {
         // Check if the mouse is hovering over the projectile
-        if (mouseX >= projectile.x && mouseX <= projectile.x + 5 &&
-            mouseY >= projectile.y && mouseY <= projectile.y + 5) {
+        if (
+            mouseX >= projectile.x &&
+            mouseX <= projectile.x + 5 &&
+            mouseY >= projectile.y &&
+            mouseY <= projectile.y + 5
+        ) {
             console.log(`Reversed a projectile at (${projectile.x}, ${projectile.y})`);
-            
+
             // Reverse projectile direction
             projectile.dx = -projectile.dx;
             projectile.dy = -projectile.dy;
@@ -378,10 +442,13 @@ function checkProjectileHover(mouseX, mouseY) {
     });
 }
 
-
 // Add event listener for the space bar
-document.addEventListener('keydown', (event) => {
-    if (event.code === 'Space') {
+document.addEventListener("keydown", (event) => {
+    if (event.code === "KeyE") {
+        towers[0].hasSword = !towers[0].hasSword; // Toggle sword equip
+        console.log(towers[0].hasSword ? "Sword equipped!" : "Sword unequipped!");
+    }
+    if (event.code === "Space") {
         pushEnemiesAway();
     }
 });
